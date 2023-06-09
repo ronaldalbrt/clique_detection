@@ -9,7 +9,7 @@ import torch
 
 random.seed(7)
 
-train_loader, valid_loader, test_loader, class_weights = generate_dataset(200, 0.5, 50, 50, 10, 10, 32)
+train_loader, valid_loader, test_loader, class_weights = generate_dataset(200, 0.5, 50, 5000, 1000, 1000, 32)
 
 GCN_args = {
     'device': device,
