@@ -3,7 +3,47 @@
 # Last Modified: June 2023
 
 import torch
+import torch.nn.functional as nnf
 from config import device
+from sklearn.metrics import accuracy_score, roc_auc_score, f1_score, precision_score, recall_score
+
+# ------------------------------------------------------------------------------
+# Class for metrics calculation
+# ------------------------------------------------------------------------------
+# Parameters:
+# prob: the probability output of the model
+# y: the ground truth labels
+# ------------------------------------------------------------------------------
+# return: the metrics
+# ------------------------------------------------------------------------------
+def metrics(prob, y):
+    def roc_auc(prob, y):
+        return roc_auc_score(y, prob)
+    
+    def accuracy(prob, y):
+        return accuracy_score(y, prob.round())
+    
+    def f1(prob, y):
+        return f1_score(y, prob.round())
+    
+    def precision(prob, y):
+        return precision_score(y, prob.round(), zero_division=0)
+    
+    def recall(prob, y):
+        return recall_score(y, prob.round())
+
+    prob = prob.numpy()[:,1]
+    y = y.numpy()
+
+    return {
+        'roc_auc': roc_auc(prob, y), 
+        'acc': accuracy(prob, y), 
+        'f1': f1(prob, y), 
+        'precision': precision(prob, y), 
+        'recall': recall(prob, y)
+        }
+    
+    
 
 # ------------------------------------------------------------------------------
 # The training function for the model
@@ -49,8 +89,8 @@ def train(model, data_loader, optimizer, loss_fn):
 # ------------------------------------------------------------------------------
 def eval(model, loader):
     model.eval()
-    y_true = []
-    y_pred = []
+    y_true = torch.tensor([])
+    y_pred = torch.tensor([])
 
     for batch in loader:
         batch = batch.to(device)
@@ -59,12 +99,9 @@ def eval(model, loader):
             pass
         else:
             with torch.no_grad():
-                pred = model(batch).argmax(dim=-1, keepdim=True)
+                pred_prob =  nnf.softmax(model(batch), dim=1)
 
-            y_true.append(batch.y.view(pred.shape).detach().cpu())
-            y_pred.append(pred.detach().cpu())
+            y_true = torch.cat((y_true, batch.y.view(pred_prob[:,1].shape).detach().cpu()), 0)
+            y_pred = torch.cat((y_pred, pred_prob.detach().cpu()), 0)
 
-    y_true = torch.cat(y_true, dim = 0).numpy()
-    y_pred = torch.cat(y_pred, dim = 0).numpy()
-
-    return (y_true == y_pred).sum() / len(y_true)
+    return metrics(y_pred, y_true)

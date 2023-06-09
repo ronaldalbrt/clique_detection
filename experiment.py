@@ -18,14 +18,14 @@ from torch.nn import CrossEntropyLoss
 # ------------------------------------------------------------------------------
 # return: the best model and the best validation accuracy
 # ------------------------------------------------------------------------------
-def run_experiment(model, model_args, train_loader, valid_loader, test_loader, class_weights):
+def run_experiment(model, model_args, train_loader, valid_loader, test_loader, class_weights, metric='roc_auc'):
     model.reset_parameters()
 
     optimizer = torch.optim.Adam(model.parameters(), lr=model_args['lr'])
     loss_fn = CrossEntropyLoss(class_weights.to(device))
 
     best_model = None
-    best_valid_acc = 0
+    best_valid_metric = 0
 
     results = {}
 
@@ -38,23 +38,27 @@ def run_experiment(model, model_args, train_loader, valid_loader, test_loader, c
         val_result = eval(model, valid_loader)
         test_result = eval(model, test_loader)
         
-        train_acc, valid_acc, test_acc = train_result, val_result, test_result
-        results[epoch] = {train_acc, valid_acc, test_acc}
+        train_metric, valid_metric, test_metric = train_result[metric], val_result[metric], test_result[metric]
+        results[epoch] = {
+            'train_result': train_result, 
+            'validation_result': val_result, 
+            'test_result':test_result
+        }
 
-        if valid_acc > best_valid_acc:
-            best_valid_acc = valid_acc
+        if valid_metric > best_valid_metric:
+            best_valid_metric = valid_metric
             best_model = copy.deepcopy(model)
             
         print(f'Epoch: {epoch:02d}, '
                 f'Loss: {loss:.4f}, '
-                f'Train: {100 * train_acc:.2f}%, '
-                f'Valid: {100 * valid_acc:.2f}% '
-                f'Test: {100 * test_acc:.2f}%')
+                f'Train: {100 * train_metric:.2f}%, '
+                f'Valid: {100 * valid_metric:.2f}% '
+                f'Test: {100 * test_metric:.2f}%')
     
     results['best'] = {
-        'train_acc': eval(best_model, train_loader),
-        'valid_acc': eval(best_model, valid_loader),
-        'test_acc': eval(best_model, test_loader)
+        'train_results': eval(best_model, train_loader),
+        'valid_results': eval(best_model, valid_loader),
+        'test_results': eval(best_model, test_loader)
     }
         
-    return results
+    return results, best_model

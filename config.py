@@ -6,4 +6,5 @@ import torch
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-dir = 'results/'
+results_dir = 'results/'
+trained_models_dir = 'trained_models/'
