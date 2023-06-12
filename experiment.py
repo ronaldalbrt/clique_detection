@@ -15,10 +15,12 @@ from torch.nn import CrossEntropyLoss
 # train_loader: the dataloader for the training set
 # valid_loader: the dataloader for the validation set
 # test_loader: the dataloader for the test set
+# class_weights: weights for each class for the loss function
+# metric: the metric to be used for evaluation
 # ------------------------------------------------------------------------------
 # return: the best model and the best validation accuracy
 # ------------------------------------------------------------------------------
-def run_experiment(model, model_args, train_loader, valid_loader, test_loader, class_weights, metric='roc_auc'):
+def run_experiment(model, model_args, train_loader, valid_loader, test_loader, class_weights, metric='acc'):
     model.reset_parameters()
 
     optimizer = torch.optim.Adam(model.parameters(), lr=model_args['lr'])

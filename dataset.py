@@ -8,6 +8,7 @@ import torch
 from torch_geometric.data import Data
 from torch_geometric.loader import DataLoader
 from torch_geometric.utils import erdos_renyi_graph
+from torch.utils.data import WeightedRandomSampler
 
 # ------------------------------------------------------------------------------
 # Generate a random G(n, p) graph 
@@ -23,7 +24,7 @@ def generate_graph(n, p, clique_size):
     edge_index = erdos_renyi_graph(n, edge_prob=p)
     clique_nodes = random.sample(range(n), clique_size)
 
-    x = torch.ones(n, 64).type(torch.float32)
+    x = torch.ones(n, 1).type(torch.float32)
     class_label = torch.zeros(n).type(torch.int64)
     class_label[clique_nodes] = 1
 
@@ -53,10 +54,12 @@ def generate_dataset(n, p, clique_size, train_size, valid_size, test_size, batch
     valid_data = [generate_graph(n, p, clique_size) for _ in range(valid_size)]
     test_data = [generate_graph(n, p, clique_size) for _ in range(test_size)]
 
-    class_weights = torch.tensor([clique_size, (n - clique_size)]).type(torch.float32)
+    class_weights = torch.tensor([clique_size/5, (n - clique_size/5)]).type(torch.float32)
 
-    train_loader = DataLoader(train_data, batch_size=32, num_workers=0)
-    valid_loader = DataLoader(valid_data, batch_size=32, num_workers=0)
-    test_loader = DataLoader(test_data, batch_size=32, num_workers=0)
+    sampler = WeightedRandomSampler(class_weights.type('torch.DoubleTensor'), len(class_weights))
+
+    train_loader = DataLoader(train_data, batch_size=batch_size, sampler=sampler)
+    valid_loader = DataLoader(valid_data, batch_size=batch_size, sampler=sampler)
+    test_loader = DataLoader(test_data, batch_size=batch_size, sampler=sampler)
 
     return train_loader, valid_loader, test_loader, class_weights
