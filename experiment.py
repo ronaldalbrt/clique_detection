@@ -24,7 +24,7 @@ def run_experiment(model, model_args, train_loader, valid_loader, test_loader, c
     model.reset_parameters()
 
     optimizer = torch.optim.Adam(model.parameters(), lr=model_args['lr'])
-    loss_fn = CrossEntropyLoss(class_weights.to(device))
+    loss_fn = CrossEntropyLoss(weight=class_weights.to(device))
 
     best_model = None
     best_valid_metric = 0

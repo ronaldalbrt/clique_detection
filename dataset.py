@@ -24,7 +24,7 @@ def generate_graph(n, p, clique_size):
     edge_index = erdos_renyi_graph(n, edge_prob=p)
     clique_nodes = random.sample(range(n), clique_size)
 
-    x = torch.ones(n, 1).type(torch.float32)
+    x = torch.ones(n, 1).type(torch.float32) * 0.1
     class_label = torch.zeros(n).type(torch.int64)
     class_label[clique_nodes] = 1
 
@@ -54,12 +54,16 @@ def generate_dataset(n, p, clique_size, train_size, valid_size, test_size, batch
     valid_data = [generate_graph(n, p, clique_size) for _ in range(valid_size)]
     test_data = [generate_graph(n, p, clique_size) for _ in range(test_size)]
 
-    class_weights = torch.tensor([clique_size/5, (n - clique_size/5)]).type(torch.float32)
+    # class_weights = torch.tensor([clique_size, (n - clique_size)]).type(torch.float32)
 
-    sampler = WeightedRandomSampler(class_weights.type('torch.DoubleTensor'), len(class_weights))
+    # sampler = WeightedRandomSampler(class_weights.type('torch.DoubleTensor'), len(class_weights))
 
-    train_loader = DataLoader(train_data, batch_size=batch_size, sampler=sampler)
-    valid_loader = DataLoader(valid_data, batch_size=batch_size, sampler=sampler)
-    test_loader = DataLoader(test_data, batch_size=batch_size, sampler=sampler)
+    train_loader = DataLoader(train_data, batch_size=batch_size)
+    valid_loader = DataLoader(valid_data, batch_size=batch_size)
+    test_loader = DataLoader(test_data, batch_size=batch_size)
 
-    return train_loader, valid_loader, test_loader, class_weights
+    # train_loader = DataLoader(train_data, batch_size=batch_size, sampler=sampler)
+    # valid_loader = DataLoader(valid_data, batch_size=batch_size, sampler=sampler)
+    # test_loader = DataLoader(test_data, batch_size=batch_size, sampler=sampler)
+
+    return train_loader, valid_loader, test_loader
