@@ -12,6 +12,7 @@ from torch_geometric.nn.conv import GATConv
 # Parameters:
 # input_dim: dimension of the input features
 # hidden_dim: dimension of the hidden layers
+# heads: number of attention heads
 # output_dim: dimension of the output features
 # num_layers: number of layers
 # dropout: dropout probability
@@ -20,14 +21,13 @@ from torch_geometric.nn.conv import GATConv
 # return: The GAT model
 # ------------------------------------------------------------------------------
 class GAT(torch.nn.Module):
-    def __init__(self, input_dim, hidden_dim, heads, output_dim, num_layers,
-                 dropout, return_embeds=False):
+    def __init__(self, input_dim, hidden_dim, heads, output_dim, num_layers, dropout, return_embeds=False):
         super(GAT, self).__init__()
 
         self.convs = None
-        self.bns = None
         self.softmax = None
-
+        self.droupout = dropout
+        
         def get_in_channels(idx):
             return hidden_dim if idx > 0 else input_dim
 
@@ -39,13 +39,7 @@ class GAT(torch.nn.Module):
             for i in range(num_layers)
         ])
 
-        self.bns = torch.nn.ModuleList([
-            torch.nn.BatchNorm1d(num_features=heads*get_out_channels(i))
-            for i in range(num_layers - 1)
-        ])
-
         self.softmax = torch.nn.LogSoftmax(dim=1)
-        self.dropout = dropout
         self.return_embeds = return_embeds
 
     # ------------------------------------------------------------------------------
@@ -54,8 +48,6 @@ class GAT(torch.nn.Module):
     def reset_parameters(self):
         for conv in self.convs:
             conv.reset_parameters()
-        for bn in self.bns:
-            bn.reset_parameters()
 
     # ------------------------------------------------------------------------------
     # Forward pass of the model
@@ -70,11 +62,10 @@ class GAT(torch.nn.Module):
 
         out = None
 
-        for layer, bn in zip(self.convs[:-1], self.bns):
+        for layer in self.convs[:-1]:
             x = layer(x, adj_t)
-            x = bn(x)
             x = F.relu(x)
-            x = F.dropout(x, p=self.dropout, training=self.training)
+            x = F.dropout(x, p=self.droupout, training=self.training)
 
         out = self.convs[-1](x, adj_t)
         if not self.return_embeds:

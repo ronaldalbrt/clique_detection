@@ -4,7 +4,8 @@ from eval import train, eval
 
 import copy
 import torch
-from torch.nn import CrossEntropyLoss
+from torch.nn import CrossEntropyLoss, NLLLoss
+
 
 # ------------------------------------------------------------------------------
 # Run an the experiment for a given model
@@ -20,11 +21,11 @@ from torch.nn import CrossEntropyLoss
 # ------------------------------------------------------------------------------
 # return: the best model and the best validation accuracy
 # ------------------------------------------------------------------------------
-def run_experiment(model, model_args, train_loader, valid_loader, test_loader, class_weights, metric='acc'):
+def run_experiment(model, model_args, train_loader, valid_loader, test_loader, class_weights, metric='roc_auc'):
     model.reset_parameters()
 
     optimizer = torch.optim.Adam(model.parameters(), lr=model_args['lr'])
-    loss_fn = CrossEntropyLoss(weight=class_weights.to(device))
+    loss_fn = NLLLoss(weight=class_weights.to(device))
 
     best_model = None
     best_valid_metric = 0
@@ -51,11 +52,12 @@ def run_experiment(model, model_args, train_loader, valid_loader, test_loader, c
             best_valid_metric = valid_metric
             best_model = copy.deepcopy(model)
             
-        print(f'Epoch: {epoch:02d}, '
-                f'Loss: {loss:.4f}, '
-                f'Train: {100 * train_metric:.2f}%, '
-                f'Valid: {100 * valid_metric:.2f}% '
-                f'Test: {100 * test_metric:.2f}%')
+        print(f'Model: {model_args["name"]} |'
+                f'Epoch: {epoch:02d} | '
+                f'Loss: {loss:.4f} | '
+                f'Train: {100 * train_metric:.2f} | '
+                f'Valid: {100 * valid_metric:.2f} | '
+                f'Test: {100 * test_metric:.2f}')
     
     results['best'] = {
         'train_results': eval(best_model, train_loader),

@@ -11,7 +11,7 @@ from torch_geometric.utils import erdos_renyi_graph
 from torch.utils.data import WeightedRandomSampler
 
 # ------------------------------------------------------------------------------
-# Generate a random G(n, p) graph 
+# Generate a random G(n, p) graph
 # ------------------------------------------------------------------------------
 # Parameters:
 # n: number of nodes
@@ -24,7 +24,7 @@ def generate_graph(n, p, clique_size):
     edge_index = erdos_renyi_graph(n, edge_prob=p)
     clique_nodes = random.sample(range(n), clique_size)
 
-    x = torch.ones(n, 1).type(torch.float32) * 0.1
+    x = torch.rand(n, 1).type(torch.float32)
     class_label = torch.zeros(n).type(torch.int64)
     class_label[clique_nodes] = 1
 
@@ -32,7 +32,7 @@ def generate_graph(n, p, clique_size):
         for node_j in clique_nodes[i + 1:]:
             edge_to_add = torch.tensor([[node_i, node_j], [node_j, node_i]])
             edge_index = torch.cat((edge_index, edge_to_add), 1)
-    
+
     return Data(x=x, adj_t=torch.transpose(edge_index, 0, 1), y=class_label)
 
 # ------------------------------------------------------------------------------
@@ -54,16 +54,12 @@ def generate_dataset(n, p, clique_size, train_size, valid_size, test_size, batch
     valid_data = [generate_graph(n, p, clique_size) for _ in range(valid_size)]
     test_data = [generate_graph(n, p, clique_size) for _ in range(test_size)]
 
-    # class_weights = torch.tensor([clique_size, (n - clique_size)]).type(torch.float32)
+    class_weights = torch.tensor([clique_size, (n - clique_size)]).type(torch.float32)
 
-    # sampler = WeightedRandomSampler(class_weights.type('torch.DoubleTensor'), len(class_weights))
+    sampler = WeightedRandomSampler(class_weights.type('torch.DoubleTensor'), len(class_weights))
 
-    train_loader = DataLoader(train_data, batch_size=batch_size)
-    valid_loader = DataLoader(valid_data, batch_size=batch_size)
-    test_loader = DataLoader(test_data, batch_size=batch_size)
-
-    # train_loader = DataLoader(train_data, batch_size=batch_size, sampler=sampler)
-    # valid_loader = DataLoader(valid_data, batch_size=batch_size, sampler=sampler)
-    # test_loader = DataLoader(test_data, batch_size=batch_size, sampler=sampler)
+    train_loader = DataLoader(train_data, batch_size=batch_size, sampler=sampler)
+    valid_loader = DataLoader(valid_data, batch_size=batch_size, sampler=sampler)
+    test_loader = DataLoader(test_data, batch_size=batch_size, sampler=sampler)
 
     return train_loader, valid_loader, test_loader

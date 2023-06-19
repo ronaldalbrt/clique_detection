@@ -20,13 +20,12 @@ from torch_geometric.nn import GCNConv
 # return: The GCN model
 # ------------------------------------------------------------------------------
 class GCN(torch.nn.Module):
-    def __init__(self, input_dim, hidden_dim, output_dim, num_layers,
-                 dropout, return_embeds=False):
+    def __init__(self, input_dim, hidden_dim, output_dim, num_layers, dropout, return_embeds=False):
         super(GCN, self).__init__()
 
         self.convs = None
-        self.bns = None
         self.softmax = None
+        self.dropout = dropout
 
         def get_in_channels(idx):
             return hidden_dim if idx > 0 else input_dim
@@ -39,13 +38,7 @@ class GCN(torch.nn.Module):
             for i in range(num_layers)
         ])
 
-        self.bns = torch.nn.ModuleList([
-            torch.nn.BatchNorm1d(num_features=get_out_channels(i))
-            for i in range(num_layers - 1)
-        ])
-
         self.softmax = torch.nn.LogSoftmax(dim=1)
-        self.dropout = dropout
         self.return_embeds = return_embeds
 
     # ------------------------------------------------------------------------------
@@ -54,8 +47,6 @@ class GCN(torch.nn.Module):
     def reset_parameters(self):
         for conv in self.convs:
             conv.reset_parameters()
-        for bn in self.bns:
-            bn.reset_parameters()
 
     # ------------------------------------------------------------------------------
     # Forward pass of the model
@@ -70,9 +61,8 @@ class GCN(torch.nn.Module):
 
         out = None
 
-        for gcn, bn in zip(self.convs[:-1], self.bns):
+        for gcn in self.convs[:-1]:
             x = gcn(x, adj_t)
-            x = bn(x)
             x = F.relu(x)
             x = F.dropout(x, p=self.dropout, training=self.training)
 

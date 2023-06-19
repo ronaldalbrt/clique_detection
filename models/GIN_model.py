@@ -11,22 +11,22 @@ from torch_geometric.nn.conv import GINConv
 # ------------------------------------------------------------------------------
 # Parameters:
 # input_dim: dimension of the input features
+# mlp: the MLP used in the GIN model
+# mlp_hidden_dim: dimension of the hidden layers of the MLP
 # hidden_dim: dimension of the hidden layers
 # output_dim: dimension of the output features
 # num_layers: number of layers
-# dropout: dropout probability
 # return_embeds: if True, the model returns the embeddings instead of the logits
 # ------------------------------------------------------------------------------
 # return: The GIN model
 # ------------------------------------------------------------------------------
 class GIN(torch.nn.Module):
-    def __init__(self, input_dim, mlp, mlp_hidden_dim, hidden_dim, output_dim, num_layers,
-                 dropout, return_embeds=False):
+    def __init__(self, input_dim, mlp, mlp_hidden_dim, hidden_dim, output_dim, num_layers, dropout, return_embeds=False):
         super(GIN, self).__init__()
 
         self.convs = None
-        self.bns = None
         self.softmax = None
+        self.dropout = dropout
 
         def get_in_channels(idx):
             return hidden_dim if idx > 0 else input_dim
@@ -41,13 +41,7 @@ class GIN(torch.nn.Module):
             for i in range(num_layers)
         ])
 
-        self.bns = torch.nn.ModuleList([
-            torch.nn.BatchNorm1d(num_features=get_out_channels(i))
-            for i in range(num_layers - 1)
-        ])
-
         self.softmax = torch.nn.LogSoftmax(dim=1)
-        self.dropout = dropout
         self.return_embeds = return_embeds
 
     # ------------------------------------------------------------------------------
@@ -56,8 +50,6 @@ class GIN(torch.nn.Module):
     def reset_parameters(self):
         for conv in self.convs:
             conv.reset_parameters()
-        for bn in self.bns:
-            bn.reset_parameters()
 
     # ------------------------------------------------------------------------------
     # Forward pass of the model
@@ -72,9 +64,8 @@ class GIN(torch.nn.Module):
 
         out = None
 
-        for layer, bn in zip(self.convs[:-1], self.bns):
+        for layer in self.convs[:-1]:
             x = layer(x, adj_t)
-            x = bn(x)
             x = F.relu(x)
             x = F.dropout(x, p=self.dropout, training=self.training)
 

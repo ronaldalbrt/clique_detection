@@ -8,67 +8,95 @@ from dataset import generate_dataset
 
 import random
 import pickle
+import itertools
 import torch
 from torch.nn import Sequential, Linear, ReLU, BatchNorm1d
 
 random.seed(7)
 
-train_loader, valid_loader, test_loader = generate_dataset(100, 0.5, 5, 10000, 1000, 1000, 8)
-
-class_weights = torch.tensor([50, 150]).type(torch.float32)
+clique_sizes = [5, 10, 15, 20]
 
 GCN_args = {
+    'name': 'GCN',
     'device': device,
     'num_layers': 3,
     'hidden_dim': 64,
-    'dropout': 0.5,
-    'lr': 0.01,
-    'epochs': 20,
+    'lr': 0.001,    
+    'dropout': 0,
+    'epochs': 100,
 }
 
 GraphSAGE_args = {
+    'name': 'GraphSAGE',
     'device': device,
     'num_layers': 3,
-    'hidden_dim': 1,
-    'dropout': 0.5,
-    'lr': 0.01,
-    'epochs': 20,
+    'hidden_dim': 64,
+    'lr': 0.001,
+    'dropout': 0.2,
+    'epochs': 100,
 }
 
 GAT_args = {
+    'name': 'GAT',
     'device': device,
-    'num_layers': 3,
-    'hidden_dim': 64,
-    'heads': 2,
-    'dropout': 0.5,
-    'lr': 0.01,
-    'epochs': 20
+    'num_layers': 2,
+    'hidden_dim': 8,
+    'heads': 8,
+    'lr': 0.001,
+    'dropout': 0.2,
+    'epochs': 100
 }
 
 GIN_args = {
+    'name': 'GIN',
     'device': device,
-    'num_layers': 5,
+    'num_layers': 3,
     'hidden_dim': 64,
-    'dropout': 0.5,
-    'lr': 0.1,
+    'lr': 0.001,
     'epochs': 100,
     'mlp_hidden_dim': 64,
-    'mlp': lambda input_dim, hidden_dim, output_dim: Sequential(Linear(input_dim, hidden_dim), BatchNorm1d(hidden_dim), ReLU(), Linear(hidden_dim, output_dim), ReLU())
+    'dropout': 0.2,
+    'mlp': lambda input_dim, hidden_dim, output_dim: Sequential(Linear(input_dim, hidden_dim), ReLU(), Linear(hidden_dim, output_dim), ReLU())
 }
-num_features = 1
-num_labels = 2
 
-model = GraphSAGE(num_features, 
-            GraphSAGE_args['hidden_dim'],
-            num_labels, GraphSAGE_args['num_layers'],
-            GraphSAGE_args['dropout']).to(device)
+args = [GCN_args, GraphSAGE_args, GAT_args, GIN_args]
+for clique_size, arg in itertools.product(clique_sizes, args):
 
-GraphSAGE_results, GraphSAGE_model = run_experiment(model, GraphSAGE_args, train_loader, valid_loader, test_loader, class_weights)
+    train_loader, valid_loader, test_loader = generate_dataset(100, 0.5, clique_size, 10000, 1000, 1000, 200)
+    class_weights = torch.tensor([clique_size, 100 - clique_size]).type(torch.float32)
 
-GraphSAGE_results_filename = 'GraphSAGE_results.pickle'
-GraphSAGE_model_filename = 'GraphSAGE_model.pt'
+    num_features = 1
+    num_labels = 2
 
-with open(results_dir+GraphSAGE_results_filename, 'wb') as file:
-    pickle.dump(GraphSAGE_results, file, protocol=pickle.HIGHEST_PROTOCOL)
+    if arg['name'] == 'GCN':
+        model = GCN(num_features, 
+                arg['hidden_dim'],
+                num_labels, arg['num_layers'],
+                arg['dropout']).to(device)
+    elif arg['name'] == 'GraphSAGE':
+        model = GraphSAGE(num_features, 
+                    arg['hidden_dim'],
+                    num_labels, arg['num_layers'],
+                    arg['dropout']).to(device)
+    elif arg['name'] == 'GAT':
+        model = GAT(num_features, 
+                    arg['hidden_dim'],
+                    arg['heads'],
+                    num_labels, arg['num_layers'],
+                    arg['dropout']).to(device)
+    elif arg['name'] == 'GIN':
+        model = GIN(num_features, 
+                    arg['mlp'], arg['mlp_hidden_dim'],
+                    arg['hidden_dim'],
+                    num_labels, arg['num_layers'],
+                    arg['dropout']).to(device)
 
-torch.save(GraphSAGE_model.state_dict(), trained_models_dir+GraphSAGE_model_filename)
+    results, model = run_experiment(model, arg, train_loader, valid_loader, test_loader, class_weights)
+
+    results_filename = arg['name']+'_'+str(clique_size)+'_'+'results.pickle'
+    model_filename = arg['name']+'_'+str(clique_size)+'_'+'model.pt'
+
+    with open(results_dir+results_filename, 'wb') as file:
+        pickle.dump(results, file, protocol=pickle.HIGHEST_PROTOCOL)
+
+    torch.save(model.state_dict(), trained_models_dir+model_filename)
