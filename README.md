@@ -1,7 +1,7 @@
 <h1 align="center">
 <br> Clique detection in Graphs with the usage of Graph Neural Networks (GNNs)
 </h1>
-Repository for the course on <a href="https://sites.google.com/poli.ufrj.br/jsouza/port/pee/aprendizado-de-m%C3%A1quina-em-grafos">Machine Learning in Graphs</a> at  <a href="http://www.pee.ufrj.br/index.php/en/" > PEE - Programa de Engenharia Elétrica</a> from <a href="https://ufrj.br/" >UFRJ - Federal University of Rio de Janeiro</a>, taught by <a href="http://buscatextual.cnpq.br/buscatextual/visualizacv.do?id=K4769526J6">Prof. João Baptista de Oliveira e Souza Filho</a>.
+Repository for the course on <a href="https://sites.google.com/poli.ufrj.br/jsouza/port/pee/aprendizado-de-m%C3%A1quina-em-grafos">Machine Learning in Graphs</a> at  <a href="https://www.cos.ufrj.br/index.php/pt-BR/" > PESC - Programa de Engenharia de Sistemas e Computação</a> from <a href="https://ufrj.br/" >UFRJ - Federal University of Rio de Janeiro</a>, taught by <a href="https://www.cos.ufrj.br/~gerson/">Prof. Gerson Zaverucha</a>.
 
 Developed by Ronald Albert.
 <h2 align="center">
